@@ -1,0 +1,21 @@
+{
+    "name": "@madebythepinshub/gitpodified-dark-theme",
+    "displayName": "Gitpodified Dark Theme",
+    "description": "The dark theme for Gitpod, pulled from Gitpod Code's Gitpod Dark theme.",
+    "version": "0.1.0",
+    "engines": {
+        "vscode": "^1.58.0"
+    },
+    "categories": [
+        "Themes"
+    ],
+    "contributes": {
+        "themes": [
+            {
+                "label": "Gitpodified Dark Theme",
+                "uiTheme": "vs-dark",
+                "path": "./themes/Gitpodified Dark Theme-color-theme.json"
+            }
+        ]
+    }
+}
