@@ -2,6 +2,7 @@
     "recommendations": [
         "eamodio.gitlens",
         "ms-azuretools.vscode-docker",
-        "vscode-icons-team.vscode-icons"
+        "vscode-icons-team.vscode-icons",
+        "davidanson.vscode-markdownlint"
     ]
 }
