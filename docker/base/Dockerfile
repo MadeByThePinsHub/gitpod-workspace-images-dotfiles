@@ -2,7 +2,9 @@
 # which licensed under the MIT License.
 FROM buildpack-deps:focal
 
-COPY install-packages /usr/bin
+# Copy our scripts first
+COPY bin/install-packages /usr/local/bin
+COPY bin/setup-dotfiles-dir /home/gitpod/.local/bin
 
 ### base ###
 ARG DEBIAN_FRONTEND=noninteractive
@@ -43,6 +45,11 @@ RUN add-apt-repository -y ppa:git-core/ppa \
 RUN useradd -l -u 33333 -G sudo -md /home/gitpod -s /bin/bash -p gitpod gitpod \
     # passwordless sudo for users in the 'sudo' group
     && sed -i.bkp -e 's/%sudo\s\+ALL=(ALL\(:ALL\)\?)\s\+ALL/%sudo ALL=NOPASSWD:ALL/g' /etc/sudoers
+
+# Init /workspace directory
+RUN mkdir -p /workspace/.gitpodify/logs \
+    && chown gitpod:gitpod -R /workspace
+
 ENV HOME=/home/gitpod
 WORKDIR $HOME
 # custom Bash prompt
@@ -58,3 +65,5 @@ RUN sudo echo "Running 'sudo' for Gitpod: success" && \
 
 # configure git-lfs
 RUN sudo git lfs install --system
+
+COPY ./bashrcdir/workspace-dotfiles.bashrc /home/gitpod/.bashrc.d/10-workspace-dotfiles

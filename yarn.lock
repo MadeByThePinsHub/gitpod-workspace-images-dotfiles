@@ -195,6 +195,12 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@madebythepinshub/gitpodified-dotfiles-base@workspace:docker/base":
+  version: 0.0.0-use.local
+  resolution: "@madebythepinshub/gitpodified-dotfiles-base@workspace:docker/base"
+  languageName: unknown
+  linkType: soft
+
 "@madebythepisnhub/gitpod-workspace-home@workspace:.":
   version: 0.0.0-use.local
   resolution: "@madebythepisnhub/gitpod-workspace-home@workspace:."

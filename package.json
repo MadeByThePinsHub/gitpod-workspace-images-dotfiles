@@ -2,7 +2,7 @@
   "name": "@madebythepisnhub/gitpod-workspace-home",
   "packageManager": "yarn@3.0.0",
   "scripts": {
-      "commit": "cz --signoff"
+    "commit": "cz --signoff"
   },
   "devDependencies": {
     "@commitlint/cli": "^13.1.0",
@@ -10,8 +10,11 @@
     "cz-conventional-changelog": "^3.3.0"
   },
   "config": {
-      "commitizen": {
-          "path": "cz-conventional-changelog"
-      }
-  }
+    "commitizen": {
+      "path": "cz-conventional-changelog"
+    }
+  },
+  "workspaces": [
+    "docker/base"
+  ]
 }

@@ -21,11 +21,16 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
       {
         "name": "@madebythepisnhub/gitpod-workspace-home",
         "reference": "workspace:."
+      },
+      {
+        "name": "@madebythepinshub/gitpodified-dotfiles-base",
+        "reference": "workspace:docker/base"
       }
     ],
     "enableTopLevelFallback": true,
     "ignorePatternData": "(^(?:\\.yarn\\/sdks(?:\\/(?!\\.{1,2}(?:\\/|$))(?:(?:(?!(?:^|\\/)\\.{1,2}(?:\\/|$)).)*?)|$))$)",
     "fallbackExclusionList": [
+      ["@madebythepinshub/gitpodified-dotfiles-base", ["workspace:docker/base"]],
       ["@madebythepisnhub/gitpod-workspace-home", ["workspace:."]]
     ],
     "fallbackPool": [
@@ -250,6 +255,15 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["chalk", "npm:4.1.2"]
           ],
           "linkType": "HARD",
+        }]
+      ]],
+      ["@madebythepinshub/gitpodified-dotfiles-base", [
+        ["workspace:docker/base", {
+          "packageLocation": "./docker/base/",
+          "packageDependencies": [
+            ["@madebythepinshub/gitpodified-dotfiles-base", "workspace:docker/base"]
+          ],
+          "linkType": "SOFT",
         }]
       ]],
       ["@madebythepisnhub/gitpod-workspace-home", [

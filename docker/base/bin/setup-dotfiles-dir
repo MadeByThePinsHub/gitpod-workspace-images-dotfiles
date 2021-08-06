@@ -1,0 +1,46 @@
+#!/bin/bash
+
+SETUP_LOG=/workspaces/.gitpodify/logs/dotfiles-init-log.txt
+DOTFILES_CLONE_PATH=/workspace/.gitpodify/personal-dotfiles
+
+### Copied from https://gitlab.com/friendly-telegram/friendly-telegram/-/blob/master/install.sh - start ###
+# Modified version of https://stackoverflow.com/a/3330834/5509575
+sp='/-\|'
+spin() {
+  printf '\b%.1s' "$sp"
+  sp=${sp#?}${sp%???}
+}
+endspin() {
+  printf '\r%s\n' "$@"
+}
+
+runin() {
+  # Runs the arguments and spins once per line of stdout (tee'd to logfile), also piping stderr to logfile
+  { "$@" 2>>$SETUP_LOG || return $?; } | while read -r line; do
+    spin
+    printf "%s\n" "$line" >> $SETUP_LOG
+  done
+}
+
+runout() {
+  # Runs the arguments and spins once per line of stdout (tee'd to logfile), also piping stderr to logfile
+  { "$@" 2>>$SETUP_LOG || return $?; } | while read -r line; do
+    spin
+    printf "%s\n" "$line" >> $SETUP_LOG
+  done
+}
+
+errorin() {
+  endspin "$@"
+  cat $SETUP_LOG
+}
+errorout() {
+  endspin "$@"
+  cat $SETUP_LOG
+}
+### Copied from https://gitlab.com/friendly-telegram/friendly-telegram/-/blob/master/install.sh - start ###
+
+# Start spin
+spin
+
+echo "info: Setting up your dotfiles..."
