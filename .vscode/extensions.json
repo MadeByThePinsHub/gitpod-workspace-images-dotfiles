@@ -1,0 +1,7 @@
+{
+    "recommendations": [
+        "eamodio.gitlens",
+        "ms-azuretools.vscode-docker",
+        "vscode-icons-team.vscode-icons"
+    ]
+}
