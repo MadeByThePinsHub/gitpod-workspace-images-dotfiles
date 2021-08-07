@@ -7,6 +7,12 @@ if [ $# = 0 ]; then
   exit 1
 fi
 
+# Check if script is ran as root, otherwise bail out
+if [[ $EUID != "0" ]]; then
+  echo >&2 "You must run me as root, otherwise things will break!"
+  exit 1
+fi
+
 # Set a runlevel to avoid invoke-rc.d warnings
 # http://manpages.ubuntu.com/manpages/focal/man8/runlevel.8.html#environment
 # shellcheck disable=SC2034
