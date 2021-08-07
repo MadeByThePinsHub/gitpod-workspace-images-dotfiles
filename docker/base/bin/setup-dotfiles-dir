@@ -1,7 +1,21 @@
 #!/bin/bash
 
-SETUP_LOG=/workspaces/.gitpodify/logs/dotfiles-init-log.txt
+set -e
+
+SETUP_LOG_ROOT=/workspace/.gitpodify/logs
+SETUP_LOG=$SETUP_LOG_ROOT/dotfiles-init-log.txt
 DOTFILES_CLONE_PATH=/workspace/.gitpodify/personal-dotfiles
+
+# Move the old log elsewhere so we don't overwrite stuff
+if [[ -f $SETUP_LOG ]]; then
+  SETUP_LOG_TOKEN=$(openssl rand -hex 12)
+  mv $SETUP_LOG "$SETUP_LOG_ROOT/dotfiles-init-log-$SETUP_LOG_TOKEN.txt"
+  echo "Previous init log is available at $SETUP_LOG_ROOT/dotfiles-init-log-$SETUP_LOG_TOKEN.txt" > $SETUP_LOG
+fi
+
+if [ ! -f "/workspace/.gitpodify/install-id" ]; then
+  openssl rand -hex 48 > /workspace/.gitpodify/install-id
+fi
 
 ### Copied from https://gitlab.com/friendly-telegram/friendly-telegram/-/blob/master/install.sh - start ###
 # Modified version of https://stackoverflow.com/a/3330834/5509575
@@ -40,7 +54,81 @@ errorout() {
 }
 ### Copied from https://gitlab.com/friendly-telegram/friendly-telegram/-/blob/master/install.sh - start ###
 
+abort() {
+  if [[ $GITPOD_WS_PREBUILD == "1" ]]; then
+    exit 0 # Exit gracefully when we're on an workspace prebuild
+  else
+    # Otherwise, error out.
+    if [ "$1" != "" ]; then
+      exit "$1"
+    else
+      exit 1
+    fi
+  fi
+}
+
+# Log collector stuff here, opt-out with GITPODIFY_LOGCOLLECTOR=false or choose which to
+# exclude instead with GITPODIFY_SCRIPT_TELEMETRY_EXCLUDE var.
+# See https://gitpodify.gitlab.io/docs/advanced/telemetry for details.
+# We only collect the workspace context URL, Gitpod meta cluster hostname and the generated
+# image seed at /workspace/.gitpodify/install-id to help us debug issues and generally
+# improve install times. We tried not to include any possible PII, including any API keys.
+# If you really want to include your GITPOD_GIT_USER_EMAIL and GITPOD_WORKSPACE_ID in as part
+# of submission, set GITPODIFY_LOGCOLLECTOR_INCLUDE_GIT_EMAIL AND GITPODIFY_LOGCOLLECTOR_INCLUD_WS_ID
+# to either "true" or "1" (Without quotes).
+log-collector() {
+  true # Gitpodify CLI is WIP, so we'll set it to true in meanwhile
+}
+
+bootstrapScriptLookup() {
+  if [ -f "$DOTFILES_CLONE_PATH/$1" ] && [ ! -f "/workspace/.gitpodify/tmp/bootstrap-script" ]; then
+    echo "File $1 is found on $DOTFILES_CLONE_PATH, writing some configuration"
+    echo "$DOTFILES_CLONE_PATH/$1" > /workspace/.gitpodify/tmp/bootstrap-script
+  elif [ -f "$DOTFILES_CLONE_PATH/$1" ] && [ -f "/workspace/.gitpodify/tmp/bootstrap-script" ]; then
+    echo "Existing bootstrap script was found eariler, skipping"
+  elif [ ! -f "$DOTFILES_CLONE_PATH/$1" ] && [ -f "/workspace/.gitpodify/tmp/bootstrap-script" ]; then
+    echo "Existing bootstrap script was found eariler, skipping"
+  else
+    echo "That file doesn't found there, trying again on another file."
+  fi
+}
+
+bootstrapper() {
+  bootstrapScriptLookup install
+  bootstrapScriptLookup install.sh
+  bootstrapScriptLookup setup
+  bootstrapScriptLookup setup.sh
+  bootstrapScriptLookup bootstrap
+  bootstrapScriptLookup bootstrap.sh
+  if ! runout "$(cat /workspace/.gitpodify/tmp/bootstrap-script)"; then
+    ERR_CODE=$?
+    [ $ERR_CODE == "126" ] && errorout "Permission error found, is this executable? If not, run 'chmod +x $(cat /workspace/.gitpodify/tmp/bootstrap-script)' and try again." && abort 2
+    [ $ERR_CODE != "126" ] && errorout "Failed to run bootstrap script" && abort 2
+  fi
+}
+
 # Start spin
 spin
 
-echo "info: Setting up your dotfiles..."
+echo "Setting up your dotfiles..." > $SETUP_LOG
+
+if [[ $DOTFILES_REPO_URL != "" ]]; then
+  endspin "Dotfiles repo URL is missing, aborting gracefully..."
+  abort # Exit gracefully instead of triggering an error, which may cause problems when ran as part of an Gitpod task.
+fi
+
+# Clone the dotfiles repo first and then hard-link $HOME/.dotfiles into there.
+if [ ! -d "$DOTFILES_CLONE_PATH" ]; then
+  if ! runout git clone "$DOTFILES_REPO_URL" "$DOTFILES_CLONE_PATH"; then
+    errorout "Cannot clone dtfiles repository, check init log for details"
+    abort 0
+  else
+    runout ln --verbose "$DOTFILES_CLONE_PATH" "$HOME/.dotfiles"
+  fi
+else
+  git -C $DOTFILES_CLONE_PATH pull --ff-only
+  git -C "$DOTFILES_CLONE_PATH/secrets" pull --ff-only || true
+fi
+
+# Look for either install, setup, or bootstrap scripts.
+bootstrapper
