@@ -156,16 +156,6 @@ dist
 
 # End of https://www.toptal.com/developers/gitignore/api/visualstudiocode,node,yarn
 
-/.yarn/*
-!/.yarn/patches
-!/.yarn/plugins
-!/.yarn/releases
-!/.yarn/sdks
-
-# Swap the comments on the following lines if you don't wish to use zero-installs
-# Documentation here: https://yarnpkg.com/features/zero-installs
-!/.yarn/cache
-#/.pnp.*
-
-# Modules stuff
-node_modules/
+# Local copied of gh:gitpod-io/workspace-images btw
+originals/
+workspace-images/

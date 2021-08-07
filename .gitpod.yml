@@ -1,0 +1,23 @@
+tasks:
+  - name: Workspace Setup
+    init: |
+      # Well, we have PnP enabled by default and also caches are commited OwO.
+      yarn
+    before: |
+      # Run the setup-dotfiles
+      GITPOD_WS_PREBUILD=1 /workspace/gitpod-workspace-home/docker/base/bin/setup-dotfiles-dir || true
+  - name: gh clone gitpod-io/workspace-images
+    command: |
+      if [ ! -d "$GITPOD_REPO_ROOT/originals" ]; then
+        git clone https://github.com/gitpod-io/workspace-images "$GITPOD_REPO_ROOT/originals"
+      else
+        git -C "$GITPOD_REPO_ROOT/originals" pull --ff-only
+      fi
+
+vscode:
+  extensions:
+    - eamodio.gitlens
+    - ms-azuretools.vscode-docker
+    - vscode-icons-team.vscode-icons
+    - davidanson.vscode-markdownlint
+    - timonwong.shellcheck
