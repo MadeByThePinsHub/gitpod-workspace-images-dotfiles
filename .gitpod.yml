@@ -1,3 +1,6 @@
+checkoutLocation: "gitpodify/workspace-images-dotfiles"
+workspaceLocation: "gitpodify"
+
 tasks:
   - name: Workspace Setup
     init: |
@@ -6,13 +9,16 @@ tasks:
     before: |
       # Run the setup-dotfiles
       GITPOD_WS_PREBUILD=1 /workspace/gitpod-workspace-home/docker/base/bin/setup-dotfiles-dir || true
-  - name: gh clone gitpod-io/workspace-images
+    command:
+      ./scripts/ghcr-login.sh || true
+  - name: Clone/sync official repo
     command: |
-      if [ ! -d "$GITPOD_REPO_ROOT/originals" ]; then
-        git clone https://github.com/gitpod-io/workspace-images "$GITPOD_REPO_ROOT/originals"
+      if [ ! -d "/workspace/gitpodify/gp-workspace-images" ]; then
+        git clone https://github.com/gitpod-io/workspace-images "/workspace/gitpodify/gp-workspace-images"
       else
-        git -C "$GITPOD_REPO_ROOT/originals" pull --ff-only
+        git -C "/workspace/gitpodify/gp-workspace-images" pull --ff-only
       fi
+      exit
 
 vscode:
   extensions:
