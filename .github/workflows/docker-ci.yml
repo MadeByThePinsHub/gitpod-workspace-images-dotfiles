@@ -1,0 +1,88 @@
+name: Docker CI
+
+on:
+  push:
+  pull_request:
+    paths:
+      - "docker/**/Dockerfile"
+    branches: [ 'main' ]
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      # Base and main images
+      ws-base: ${{steps.changes.outputs.wsBase}}
+      ws-main: ${{steps.changes.outputs.wsMain}}
+
+      # Language Specific images
+      ws-lang-javascript: "false"
+      ws-lang-python: "false"
+      ws-lang-rust: "false"
+      ws-lang-golang: "false"
+
+      # Databases
+      ws-mongodb: "false" # Set to false if WIP.
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: "Check what's changed"
+        uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          base: main
+          list-files: json
+          # Use RecapTimeBot's PAT instead of the default GITHUB_TOKEN. Note that this will fail on most
+          # forks, but we'll document it in the future.
+          token: ${{ secrets.GH_SERVICE_ACCOUNT_API_KEY }}
+          filters: |
+            wsBase:
+              - 'docker/base/Dockerfile'
+              - 'docker/base/bin/**'
+              - 'docker/base/bashrcdir/**'
+            wsMain:
+              - 'docker/main/Dockerfile'
+              - 'docker/main/bin/**'
+              - 'docker/main/bashrcdir/**'
+            workflow:
+              - '.github/workflows/docker-ci.yml'
+  ws-base:
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.output.wsBase == 'true' || needs.changes.output.workflow == 'true'
+    env:
+      image_repo: gitpodified-dotfiles/base
+    steps:
+      - uses: actions/checkout@v2
+
+      # Setup QEMU for multiarch builds, blame Buildx.
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+      # and of course, we need to setup Buildx, but since we're using the
+      # development images, this might cause chaos.
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+        with:
+          driver-opts: "image=moby/buildkit:master,network=host"
+
+      # TODO: Setup GitLab Container Registry mirror stuff
+      - name: Authenicate with GHCR
+        if: github.event_name != "pull_request"
+        uses: docker/login-action@v1
+        with:
+          username: RecapTimeBot
+          password: ${{secrets.GH_SERVICE_ACCOUNT_API_KEY}}
+          registry: ghcr.io
+
+      - name: Build image
+        id: image-build
+        uses: docker/build-push-action@v2
+        with:
+          push: ${{ github.event_name != 'pull_request' }}
+          context: docker/base
+          platforms: linux/amd64
+  
