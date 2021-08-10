@@ -1,0 +1,11 @@
+stages:
+  - test
+
+commit-msg-linter:
+  stage: test
+  image: node:14
+  before_script:
+    - npm i -g yarn
+    - yarn install # Let's do this, even we have Zero-Installs
+  script:
+    - npx commitlint -- --from main --to HEAD --help-url "https://gitpodify.gitlab.io/docs/commitlint"
