@@ -3,6 +3,8 @@
         "eamodio.gitlens",
         "ms-azuretools.vscode-docker",
         "vscode-icons-team.vscode-icons",
-        "davidanson.vscode-markdownlint"
+        "davidanson.vscode-markdownlint",
+        "timonwong.shellcheck",
+        "exiasr.hadolint"
     ]
 }
