@@ -1,0 +1,13 @@
+- desc: Check whetever Docker is installed
+  command: [which, docker]
+  assert:
+  - status == 0
+  - stdout.indexOf("/usr/bin/docker") != -1
+- desc: Check whetever Containerd is installed and configuration is successfully dumped
+  command: [containerd, config, dump]
+  assert:
+  - status == 0
+- desc: Check whetever Dive is installed and version info is printed without errors
+  command: [dive, version]
+  assert:
+  - status == 0
