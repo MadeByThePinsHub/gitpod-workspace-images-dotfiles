@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "packageManager": "yarn@3.0.0",
   "scripts": {
-    "base:build": "docker build --tag ghcr.io/madebythepinshub/gitpodified-dotfiles/base:latest .",
-    "base:buildkit": "DOCKER_BUILDKIT=1 docker build --tag ghcr.io/madebythepinshub/gitpodified-dotfiles/base:latest .",
-    "base:nobuildkit": "DOCKER_BUILDKIT=0 docker build --tag ghcr.io/madebythepinshub/gitpodified-dotfiles/base:latest .",
+    "base:build": "bash ./build.sh",
+    "base:buildkit": "DOCKER_BUILDKIT=1 yarn base:build",
+    "base:nobuildkit": "DOCKER_BUILDKIT=0 yarn base:build",
     "base:pwd": "pwd"
   }
 }

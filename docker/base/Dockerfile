@@ -48,10 +48,16 @@ RUN useradd -l -u 33333 -G sudo -md /home/gitpod -s /bin/bash -p gitpod gitpod \
 
 # Init /workspace directory
 RUN mkdir -p /workspace/.gitpodify/logs \
+    # Temporary files
     && mkdir /workspace/.gitpodify/tmp \
-    && chown gitpod:gitpod -R /workspace
+    # GNUPGHOME
+    && mkdir /workspace/.gitpodify/gnupghome \
+    && chown gitpod:gitpod -R /workspace \
+    # JUst fix some chaos
+    && sudo find /workspace/.gitpodify/gnupghome -type d -exec chmod -Rv 700 {} \;
+    #sudo find /workspace/.gitpodify/gnupghome -type f -exec chmod -Rv 600 {} \;
 
-ENV HOME=/home/gitpod
+ENV HOME=/home/gitpod GNUPGHOME=/workspace/.gitpodify/gnupghome
 WORKDIR $HOME
 # custom Bash prompt
 RUN { echo && echo "PS1='\[\033[01;32m\]\u\[\033[00m\] \[\033[01;34m\]\w\[\033[00m\]\$(__git_ps1 \" (%s)\") $ '" ; } >> .bashrc
@@ -72,8 +78,8 @@ COPY ./bashrcdir/workspace-dotfiles.bashrc /home/gitpod/.bashrc.d/99-workspace-d
 
 ### Docker ###
 # WARNING: IDK if we can use Dazzle on GitHub Actions/GitLab CI, but good luck.
-LABEL dazzle/layer=tool-docker
-LABEL dazzle/test=tests/tool-docker.yaml
+LABEL dazzle/layer=docker-tools
+LABEL dazzle/test=tests/docker-tools.yaml
 ENV TRIGGER_REBUILD=2
 # https://docs.docker.com/engine/install/ubuntu/
 RUN curl -o /var/lib/apt/dazzle-marks/docker.gpg -fsSL https://download.docker.com/linux/ubuntu/gpg \
@@ -92,7 +98,7 @@ RUN curl -o /tmp/dive.deb -fsSL https://github.com/wagoodman/dive/releases/downl
 
 ### Prologue (built across all layers) ###
 LABEL dazzle/layer=dazzle-prologue
-LABEL dazzle/test=tests/prologue.yaml
+LABEL dazzle/test=tests/ownership-checks-homedir.yml
 USER root
 RUN curl -o /usr/bin/dazzle-util -fsSL https://github.com/csweichel/dazzle/releases/download/v0.0.3/dazzle-util_0.0.3_Linux_x86_64 \
     && chmod +x /usr/bin/dazzle-util
@@ -105,3 +111,6 @@ RUN cp /var/lib/dpkg/status /tmp/dpkg-status \
 ENV PATH=$PATH:/usr/games
 # merge GPG keys for trusted APT repositories
 RUN for i in $(ls /var/lib/apt/dazzle-marks/*.gpg); do apt-key add "$i"; done
+# copy tests to enable the self-test of this image
+# Repeat this for the main image btw
+COPY tests /var/lib/dazzle/tests
