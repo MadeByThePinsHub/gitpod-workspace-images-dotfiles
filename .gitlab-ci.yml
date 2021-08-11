@@ -26,8 +26,9 @@ variables:
 .commit-msg-linter:
   stage: test
   variables:
+    # TODO: Make the CR Login scripts handle these OwO
     SKIP_CR_LOGIN: true
-    SKIP_CR_REASON: "Non-Docker related stuff"
+    SKIP_CR_LOGIN_REASON: "Non-Docker related stuff"
   image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/node:14
   before_script:
     - yarn install # Let's do this, even we have Zero-Installs
@@ -42,7 +43,7 @@ build:ws-base:
     - docker push $CONTAINER_TEST_IMAGE
 
 publish:ws-base:
-  stage: publish
+  stage: release
   script:
     - docker pull $CONTAINER_TEST_IMAGE
     - docker tag $CONTAINER_TEST_IMAGE $CONTAINER_RELEASE_IMAGE
