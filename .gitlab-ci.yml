@@ -13,13 +13,15 @@ image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/docker:stable
 
 # Login stuff goes here
 before_script:
-    - GITLAB_DEPENDENCY_PROXY=true bash ./scripts/gl-cr-login.sh || true
-    #- GHCR_REGISTRY_PAT=$GITHUB_TOKEN GHCR_USERNAME=RecapTimeBot bash ./scripts/ghcr-login.sh
+  - apk install bash coreutils # We're using Alpine Linuz here, so no bash preinstalled 
+  - GITLAB_DEPENDENCY_PROXY=true bash ./scripts/docker-login-wrapper.sh
+  #- GHCR_REGISTRY_PAT=$GITHUB_TOKEN GHCR_USERNAME=RecapTimeBot bash ./scripts/ghcr-login.sh
 
 variables:
   # Use TLS https://docs.gitlab.com/ee/ci/docker/using_docker_build.html#tls-enabled
   DOCKER_HOST: tcp://docker:2376
   DOCKER_TLS_CERTDIR: "/certs"
+  # TODO: Do all the mirroring stuff soon
   CONTAINER_TEST_IMAGE: $CI_REGISTRY/gitpodify/workspace-images-dotfiles/base:$CI_COMMIT_REF_SLUG
   CONTAINER_RELEASE_IMAGE: $CI_REGISTRY/gitpodify/workspace-images-dotfiles/base:latest
 
@@ -36,13 +38,12 @@ variables:
     - npx commitlint -- --from main --to HEAD --help-url "https://gitpodify.gitlab.io/docs/commitlint"
 
 # TODO: Implement label/metadata generator like what docker/metadata-action do for GitHub Actions.
-build:ws-base:
+.build:ws-base:
   stage: build
   script:
     - DOCKER_BUILDKIT=1 docker build --tag $CONTAINER_TEST_IMAGE docker/base
     - docker push $CONTAINER_TEST_IMAGE
-
-publish:ws-base:
+.publish:ws-base:
   stage: release
   script:
     - docker pull $CONTAINER_TEST_IMAGE
