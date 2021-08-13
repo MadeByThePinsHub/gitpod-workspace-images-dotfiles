@@ -1,7 +1,19 @@
-name: Docker CI
+name: Docker CI (main branch)
+
+env:
+  # GHCR
+  namespace: madebythepinshub
+  image_repo_prefix: gitpodified-dotfiles
+  # GitLab
+  namespace_gitlab: gitpodify
+  image_repo_prefix_gitlab: workspace-images-dotfiles
+  
+  # Container Registry Proxy for Docker Hub
+  dockerhub_cr_proxy_prefix: gitlab.com/gitpodify/dependency_proxy/containers
 
 on:
   push:
+    branches: [ 'main' ]
   pull_request:
     paths:
       - "docker/**/Dockerfile"
@@ -18,12 +30,6 @@ jobs:
       # Base and main images
       ws-base: ${{steps.changes.outputs.wsBase}}
       ws-main: ${{steps.changes.outputs.wsMain}}
-
-      # Language Specific images
-      ws-lang-javascript: "false"
-      ws-lang-python: "false"
-      ws-lang-rust: "false"
-      ws-lang-golang: "false"
 
       # Databases
       ws-mongodb: "false" # Set to false if WIP.
@@ -54,8 +60,6 @@ jobs:
     runs-on: ubuntu-latest
     needs: changes
     if: needs.changes.output.wsBase == 'true' || needs.changes.output.workflow == 'true'
-    env:
-      image_repo: gitpodified-dotfiles/base
     steps:
       - uses: actions/checkout@v2
 
@@ -71,18 +75,53 @@ jobs:
 
       # TODO: Setup GitLab Container Registry mirror stuff
       - name: Authenicate with GHCR
-        if: github.event_name != "pull_request"
+        if: github.event_name != 'pull_request'
         uses: docker/login-action@v1
         with:
           username: RecapTimeBot
           password: ${{secrets.GH_SERVICE_ACCOUNT_API_KEY}}
           registry: ghcr.io
+      - name: Authenicate with GitLab Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v1
+        with:
+          username: ${{secrets.GITLAB_CONTAINER_REGISTRY_USERNAME}}
+          password: ${{secrets.GITLAB_CONTAINER_REGISTRY_TOKEN}}
+          registry: registry.gitlab.com
+      - name: Authenicate with GitLab Container Proxy
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v1
+        with:
+          username: ${{secrets.GITLAB_CONTAINER_REGISTRY_USERNAME}}
+          password: ${{secrets.GITLAB_CONTAINER_REGISTRY_TOKEN}}
+          registry: gitlab.com
 
-      - name: Build image
+      - name: Generate metadate for builds
+        uses: docker/metadata-action@v3.4.1
+        id: meta
+        with:
+          images: |
+            ghcr.io/${{env.namespace}}/${{env.image_name_prefix}}/base
+            registry.gitlab.com/${{env.namespace_gitlab}}/${{env.image_name_prefix_gitlab}}/base
+          flavors: |
+            latest=true
+          labels:
+            org.opencontainers.image.source=https://gitlab.com/gitpodify/workspace-images-dotfiles
+            org.opencontainers.image.url=https://gitlab.com/gitpodify/workspace-images-dotfiles
+            org.opencontainers.image.docs=https://gitpodify.gitlab.io/docs/workspace-images-dotfiles
+            org.opencontainers.image.vendor=The Pins Team
+            org.opencontainers.image.title=Gitpod Workspace Base Image with Dotfiles-related Scripts
+            org.opencontainers.image.description=The base image for The Pins Team's custom Gitpod workspace images with dotfiles support
+
+      - name: Build base image
         id: image-build
         uses: docker/build-push-action@v2
         with:
           push: ${{ github.event_name != 'pull_request' }}
           context: docker/base
           platforms: linux/amd64
+          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ steps.meta.outputs.tags }}
+          build-args: |
+            BASE_IMAGE_CUSTOM=${{env.dockerhub_cr_proxy_prefix}}/buildpack-deps:focal
   
