@@ -1,0 +1,19 @@
+#!/bin/bash
+
+GITPODIFY_DIR_PREFIX=${GITPODIFY_DIR_PREFIX:-"$HOME/.gitpodify"}
+
+if [ ! -d "$GITPODIFY_DIR_PREFIX" ]; then
+  mkdir "$GITPODIFY_DIR_PREFIX"
+fi
+
+[ ! -d "$GITPODIFY_DIR_PREFIX/logs" ] && mkdir "$GITPODIFY_DIR_PREFIX/logs"
+[ ! -d "$GITPODIFY_DIR_PREFIX/tmp" ] && mkdir "$GITPODIFY_DIR_PREFIX/tmp"
+
+if [[ $GITPODIFY_DIR_PREFIX == "/workspace/.gitpodify" ]] && [ ! -d "$GITPODIFY_DIR_PREFIX/gnupghome" ]; then
+  mkdir "$GITPODIFY_DIR_PREFIX/gnupghome"
+  chmod -Rv 700 "$GITPODIFY_DIR_PREFIX/gnupghome"
+
+  #if [ ! -d "$GITPODIFY_DIR_PREFIX/configfiles" ]; then
+  #  mv -r "$HOME/.config" "$GITPODIFY_DIR_PREFIX/configfiles"
+  #fi
+fi

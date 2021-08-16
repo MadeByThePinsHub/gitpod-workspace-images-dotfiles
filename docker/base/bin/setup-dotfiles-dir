@@ -87,13 +87,15 @@ bootstrapScriptLookup() {
   elif [ -f "$DOTFILES_CLONE_PATH/$1" ] && [ -f "/workspace/.gitpodify/tmp/bootstrap-script" ]; then
     echo "Existing bootstrap script was found eariler, skipping"
   elif [ ! -f "$DOTFILES_CLONE_PATH/$1" ] && [ -f "/workspace/.gitpodify/tmp/bootstrap-script" ]; then
-    echo "Existing bootstrap script was found eariler, skipping"
+    echo "That file doesn't found there but existing bootstrap script was found eariler, skipping"
   else
     echo "That file doesn't found there, trying again on another file."
   fi
 }
 
 bootstrapper() {
+  bootstrapScriptLookup gitpod-ws-setup.sh
+  bootstrapScriptLookup gitpod-ws-bootstrap.sh
   bootstrapScriptLookup install
   bootstrapScriptLookup install.sh
   bootstrapScriptLookup setup
@@ -112,23 +114,46 @@ spin
 
 echo "Setting up your dotfiles..." > $SETUP_LOG
 
-if [[ $DOTFILES_REPO_URL != "" ]]; then
-  endspin "Dotfiles repo URL is missing, aborting gracefully..."
-  abort # Exit gracefully instead of triggering an error, which may cause problems when ran as part of an Gitpod task.
-fi
-
-# Clone the dotfiles repo first and then hard-link $HOME/.dotfiles into there.
-if [ ! -d "$DOTFILES_CLONE_PATH" ]; then
-  if ! runout git clone "$DOTFILES_REPO_URL" "$DOTFILES_CLONE_PATH"; then
-    errorout "Cannot clone dtfiles repository, check init log for details"
-    abort 0
-  else
-    runout ln --verbose "$DOTFILES_CLONE_PATH" "$HOME/.dotfiles"
+dotfilesCloner() {
+  if [[ $DOTFILES_REPO_URL != "" ]] && [ ! -d "$DOTFILES_CLONE_PATH" ]; then
+    endspin "Dotfiles repo URL is missing, skipping"
+    export NO_DOTFILES_DIRECTORY=1
+  # We save your dotfiles repo URL in an file so we can check if the URL is changed.
+  elif [ -d "$DOTFILES_CLONE_PATH" ] && [[ $DOTFILES_REPO_URL != "$(cat /workspace/.gitpodify/dotfiles-repo-url)" ]]; then
+    runout "git remote set-url origin $DOTFILES_REPO_URL"
+    echo "$DOTFILES_REPO_URL" > /workspace/.gitpodify/dotfiles-repo-url
   fi
-else
-  git -C $DOTFILES_CLONE_PATH pull --ff-only
-  git -C "$DOTFILES_CLONE_PATH/secrets" pull --ff-only || true
-fi
 
-# Look for either install, setup, or bootstrap scripts.
-bootstrapper
+  # Clone the dotfiles repo first and then hard-link $HOME/.dotfiles into there.
+  if [ ! -d "$DOTFILES_CLONE_PATH" ] && [[ $NO_DOTFILES_DIRECTORY == "" ]]; then
+    if ! runout git clone "$DOTFILES_REPO_URL" "$DOTFILES_CLONE_PATH"; then
+      errorout "Cannot clone dtfiles repository, check init log for details"
+      abort 1
+    else
+      runout ln --verbose "$DOTFILES_CLONE_PATH" "$HOME/.dotfiles"
+      echo "$DOTFILES_REPO_URL" > /workspace/.gitpodify/dotfiles-repo-url
+    fi
+  elif [ -d "$DOTFILES_CLONE_PATH" ] && [[ $NO_DOTFILES_DIRECTORY == "" ]]; then
+    runout git -C $DOTFILES_CLONE_PATH pull --ff-only
+    runout "git -C "$DOTFILES_CLONE_PATH/secrets" pull --ff-only || true"
+    if [[ ! -L "$HOME/.dotfiles" ]]; then
+      runout ln --verbose "$DOTFILES_CLONE_PATH" "$HOME/.dotfiles"
+    fi
+  fi
+
+  # Look for either install, setup, or bootstrap scripts.
+  bootstrapper
+}
+
+dotfilesCloner
+
+# Symlink ~/.config to /workspace/.gitpodify/config
+if [[ ! -f "/workspace/.gitpodify/config-dir-success" ]] && [[ ! -L "$HOME/.config" ]]; then
+  runout mkdir /workspace/.gitpodify/configfiles
+  runout mv ~/.config /workspace/.gitpodify/configfiles
+  runout ln -s --verbose /workspace/.gitpodify/configfiles ~/.config
+  runout touch /workspace/.gitpodify/config-dir-success
+elif [[ -f "/workspace/.gitpodify/config-dir-success" && -d "/workspace/.gitpodify/configfiles" ]] && [[ ! -L "$HOME/.config" ]]; then
+  runout rm -rv "$HOME/.config"
+  runout ln --verbose -s /workspace/.gitpodify/configfiles ~/.config
+fi
