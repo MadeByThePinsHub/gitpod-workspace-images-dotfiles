@@ -1,4 +1,9 @@
 #!/bin/bash
+# shellcheck disable=SC1090,SC2086
+
+if [ ! -d "/workspace/.gitpodify" ]; then
+  /home/gitpod/.local/bin/init-gitpodify-dir # Init tthat directory first if doesn't exists.
+fi
 
 SESSION_LOG_ID=$(openssl rand -hex 12)
 SESSION_LOG_TIMESTAMP=$(date +%s)
@@ -15,8 +20,9 @@ runout() {
 }
 ### Copied from https://gitlab.com/friendly-telegram/friendly-telegram/-/blob/master/install.sh - end ###
 
+CUSTOM_GITPOD_BASHRC=${CUSTOM_GITPOD_BASHRC:-"$DOTFILES_CLONE_PATH/bashrc/gitpod"}
 if [ -d $DOTFILES_CLONE_PATH ]; then
   runout git -C $DOTFILES_CLONE_PATH fetch --all
   runout git -C $DOTFILES_CLONE_PATH pull
-  source $DOTFILES_CLONE_PATH/bashrc/gitpod
+  source "$CUSTOM_GITPOD_BASHRC"
 fi
