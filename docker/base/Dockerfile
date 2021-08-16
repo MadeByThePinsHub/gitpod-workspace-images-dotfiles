@@ -1,10 +1,14 @@
 # Copied from gitpod/workspace-base's Dockerfile from https://github.com/gitpod-io/workspace-images/commit/cc84194ce4bef23db1d380e73a253b5d3da83ff4,
 # which licensed under the MIT License.
-FROM buildpack-deps:focal
 
-# Copy our scripts first
+# To use GitLab Dependency Proxy or another Docker Hub container registry pull-through proxy,
+# add an build arg pointing to this one. When unused, it'll pull directly from Docker Hub
+# which subject to their ratelimiting policies.
+ARG BASE_IMAGE_CUSTOM=buildpack-deps:focal
+FROM ${BASE_IMAGE_CUSTOM}
+
+# Copy the install-packages script first
 COPY bin/install-packages /usr/local/bin
-COPY bin/setup-dotfiles-dir /home/gitpod/.local/bin/setup-dotfiles
 
 ### base ###
 ARG DEBIAN_FRONTEND=noninteractive
@@ -46,7 +50,10 @@ RUN useradd -l -u 33333 -G sudo -md /home/gitpod -s /bin/bash -p gitpod gitpod \
     # passwordless sudo for users in the 'sudo' group
     && sed -i.bkp -e 's/%sudo\s\+ALL=(ALL\(:ALL\)\?)\s\+ALL/%sudo ALL=NOPASSWD:ALL/g' /etc/sudoers
 
-# Init /workspace directory
+# Init /workspace directory for those who use this image directly (probably to use code-server)
+# instead of using it as part of your Gitpod workspace configuration.
+# Note that this will be lost when using this image in Gitpod, through it's recommended to run
+# the init-gitpodify-dir script ahead of time.
 RUN mkdir -p /workspace/.gitpodify/logs \
     # Temporary files
     && mkdir /workspace/.gitpodify/tmp \
@@ -54,10 +61,15 @@ RUN mkdir -p /workspace/.gitpodify/logs \
     && mkdir /workspace/.gitpodify/gnupghome \
     && chown gitpod:gitpod -R /workspace \
     # JUst fix some chaos
-    && sudo find /workspace/.gitpodify/gnupghome -type d -exec chmod -Rv 700 {} \;
-    #sudo find /workspace/.gitpodify/gnupghome -type f -exec chmod -Rv 600 {} \;
+    && chmod -Rv 700 /workspace/.gitpodify/gnupghome
 
-ENV HOME=/home/gitpod GNUPGHOME=/workspace/.gitpodify/gnupghome
+ENV HOME=/home/gitpod \
+    # Point Gitpodify homedir to the presistent /workspace directory btw
+    GITPODIFY_DIR_PREFIX=/workspace/.gitpodify \
+    GNUPGHOME=/workspace/.gitpodify/gnupghome \
+    # This variable are just an way for others to know that we're inside an Gitpd workspace
+    GITPOD=true
+
 WORKDIR $HOME
 # custom Bash prompt
 RUN { echo && echo "PS1='\[\033[01;32m\]\u\[\033[00m\] \[\033[01;34m\]\w\[\033[00m\]\$(__git_ps1 \" (%s)\") $ '" ; } >> .bashrc
@@ -69,6 +81,9 @@ RUN sudo echo "Running 'sudo' for Gitpod: success" && \
     # create .bashrc.d folder and source it in the bashrc
     mkdir /home/gitpod/.bashrc.d && \
     (echo; echo "for i in \$(ls \$HOME/.bashrc.d/*); do source \$i; done"; echo) >> /home/gitpod/.bashrc
+
+COPY bin/setup-dotfiles-dir /home/gitpod/.local/bin/setup-dotfiles
+COPY bin/init-gitpodify-dir /home/gitpod/.local/bin
 
 # configure git-lfs
 RUN sudo git lfs install --system
@@ -99,9 +114,11 @@ RUN curl -o /tmp/dive.deb -fsSL https://github.com/wagoodman/dive/releases/downl
 ### Prologue (built across all layers) ###
 LABEL dazzle/layer=dazzle-prologue
 LABEL dazzle/test=tests/ownership-checks-homedir.yml
-USER root
-RUN curl -o /usr/bin/dazzle-util -fsSL https://github.com/csweichel/dazzle/releases/download/v0.0.3/dazzle-util_0.0.3_Linux_x86_64 \
-    && chmod +x /usr/bin/dazzle-util
+RUN sudo curl -o /usr/bin/dazzle-util -fsSL https://github.com/csweichel/dazzle/releases/download/v0.0.3/dazzle-util_0.0.3_Linux_x86_64 \
+    && sudo chmod +x /usr/bin/dazzle-util \
+    && wget -qO- https://github.com/gitpod-io/dazzle/releases/download/v0.1.2/dazzle_0.1.2_Linux_x86_64.tar.gz | tar -xJv -C /tmp \
+    && sudo cp /tmp/dazzle/dazzle /usr/bin/ \
+    && rm -rfv /tmp/*
 # merge dpkg status files
 RUN cp /var/lib/dpkg/status /tmp/dpkg-status \
     && for i in $(ls /var/lib/apt/dazzle-marks/*.status); do /usr/bin/dazzle-util debian dpkg-status-merge /tmp/dpkg-status $i > /tmp/dpkg-status; done \
