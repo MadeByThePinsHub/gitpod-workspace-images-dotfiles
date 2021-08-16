@@ -8,7 +8,7 @@ tasks:
       yarn
     before: |
       # Run the setup-dotfiles
-      GITPOD_WS_PREBUILD=1 /workspace/gitpod-workspace-home/docker/base/bin/setup-dotfiles-dir || true
+      GITPOD_WS_PREBUILD=1 /workspace/gitpodify/workspace-images-dotfiles/docker/base/bin/setup-dotfiles-dir || true
     command:
       ./scripts/ghcr-login.sh || true
   - name: Clone/sync official repo
