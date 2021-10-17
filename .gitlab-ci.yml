@@ -25,17 +25,17 @@ variables:
   CONTAINER_TEST_IMAGE: $CI_REGISTRY/gitpodify/workspace-images-dotfiles/base:$CI_COMMIT_REF_SLUG
   CONTAINER_RELEASE_IMAGE: $CI_REGISTRY/gitpodify/workspace-images-dotfiles/base:latest
 
-.commit-msg-linter:
+commitlint:
   stage: test
   variables:
     # TODO: Make the CR Login scripts handle these OwO
-    SKIP_CR_LOGIN: true
+    SKIP_CR_LOGIN: "true"
     SKIP_CR_LOGIN_REASON: "Non-Docker related stuff"
   image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/node:14
   before_script:
     - yarn install # Let's do this, even we have Zero-Installs
   script:
-    - npx commitlint -- --from main --to HEAD --help-url "https://gitpodify.gitlab.io/docs/commitlint"
+    - yarn commitlint --from main --to HEAD --help-url "https://gitpodify.gitlab.io/docs/commitlint"
 
 # TODO: Implement label/metadata generator like what docker/metadata-action do for GitHub Actions.
 .build:ws-base:
